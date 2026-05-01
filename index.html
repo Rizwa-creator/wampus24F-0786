@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wumpus Logic Agent — AI 2002</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F0EAE2;--cream:#FAF6F1;--white:#FFFFFF;--border:#DDD4C8;--soft:#C9BDB2;
+  --rust1:#F09070;--rust2:#E07458;--rust3:#CC5C40;--rust4:#B84430;--rust5:#A03020;
+  --rust-btn:#C04830;--rust-hov:#A03020;
+  --gold:#C9962A;--gold-lt:#E8B240;--gold-hov:#A87D1A;--gold-text:#7A5500;
+  --green:#3D9E6A;--green-lt:#D8F0E5;--green-dk:#2A7A50;
+  --blue:#4072B4;--blue-lt:#DDE8F8;--blue-dk:#2A5090;
+  --purple:#7048B0;--purple-lt:#EDE4F8;
+  --red:#C43030;--red-lt:#FAE0E0;
+  --orange:#C86018;--orange-lt:#FAEADE;
+  --gray-cell:#EDE5DA;
+  --text:#2A2018;--muted:#7A6A5A;--faint:#B0A090;
+  --serif:'Bebas Neue',cursive;--sans:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --nav-w:232px;--nav-bg:#FAFAFA;--nav-border:#EBEBEB;
+  --nav-hover:#F2F2F2;--nav-text:#1A1A1A;--nav-muted:#999;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
+
+/* ══ MAIN APP ══ */
+.app-main{display:flex;flex-direction:column;width:100%;height:100vh;overflow:hidden;}
+
+/* Header */
+header{
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  padding:14px 20px 11px;border-bottom:1.5px solid var(--border);
+  background:var(--cream);overflow:hidden;position:relative;
+}
+header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 200% at 50% 50%,rgba(200,90,50,0.07),transparent 70%);pointer-events:none;}
+.logo-hero{position:relative;display:flex;align-items:center;justify-content:center;height:68px;min-width:380px;}
+.oval-track{position:absolute;display:flex;align-items:center;height:100%;left:50%;top:50%;transform:translate(-50%,-50%);}
+.ov{width:68px;height:68px;border-radius:50%;flex-shrink:0;margin-left:-20px;opacity:0.88;}
+.ov:first-child{margin-left:0;}
+.ov1{background:var(--rust1)}.ov2{background:var(--rust2)}.ov3{background:var(--rust3)}.ov4{background:var(--rust4)}.ov5{background:var(--rust5)}
+.logo-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:1px;}
+.logo-hex{font-size:.9rem;color:rgba(255,255,255,.7);line-height:1;}
+.logo-title{font-family:var(--serif);font-size:1.85rem;letter-spacing:4px;color:#fff;text-shadow:0 2px 12px rgba(80,20,0,.35);line-height:1;}
+.logo-sub{font-size:.5rem;letter-spacing:2px;text-transform:uppercase;color:#FF6B4A;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,0.3);}
+
+/* Controls */
+.controls{
+  flex-shrink:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:9px 16px;border-bottom:1.5px solid var(--border);
+  background:var(--white);justify-content:center;
+}
+.ctrl-group{display:flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:7px;padding:3px 9px;}
+.ctrl-group label{font-size:.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.ctrl-group input{width:38px;padding:3px 4px;text-align:center;background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:.85rem;font-weight:500;outline:none;}
+.sep{width:1.5px;height:24px;background:var(--border);}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border:none;border-radius:7px;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:.7rem;letter-spacing:.8px;text-transform:uppercase;transition:all .18s;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+.btn-new{background:linear-gradient(135deg,var(--gold-lt),var(--gold));color:var(--gold-text);border:1.5px solid var(--gold);}
+.btn-new:hover{background:linear-gradient(135deg,var(--gold),var(--gold-hov));color:#fff;transform:translateY(-1px);}
+.btn-step{background:linear-gradient(135deg,#F0D080,var(--gold));color:var(--gold-text);border:1.5px solid var(--gold);}
+.btn-step:hover{background:linear-gradient(135deg,var(--gold),var(--gold-hov));color:#fff;transform:translateY(-1px);}
+.btn-auto{background:linear-gradient(135deg,#E07050,var(--rust-btn));color:#fff;border:1.5px solid var(--rust-btn);}
+.btn-auto:hover{background:linear-gradient(135deg,var(--rust-btn),var(--rust-hov));transform:translateY(-1px);}
+.btn-stop{background:linear-gradient(135deg,#CC5038,var(--rust-hov));color:#fff;border:1.5px solid var(--rust-hov);}
+.speed-wrap{display:flex;align-items:center;gap:5px;}
+.speed-wrap label{font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;}
+.speed-wrap select{background:var(--cream);border:1.5px solid var(--border);border-radius:6px;padding:3px 6px;font-size:.72rem;color:var(--text);outline:none;cursor:pointer;}
+
+/* Main body */
+.main-body{flex:1;display:flex;min-height:0;overflow:hidden;}
+
+/* Grid area */
+.grid-area{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:16px;gap:10px;overflow:auto;background:var(--bg);
+}
+#grid-container{
+  display:inline-grid;gap:5px;background:var(--white);padding:11px;
+  border-radius:14px;border:1.5px solid var(--border);
+  box-shadow:0 6px 28px rgba(100,60,20,.1),0 2px 8px rgba(0,0,0,.05);
+}
+.cell{
+  width:70px;height:70px;border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:2px solid transparent;transition:all .2s ease;position:relative;cursor:default;
+}
+.cell:hover .cell-tip{display:block;}
+.cell .icon{font-size:1.5rem;line-height:1;z-index:1;}
+.cell .coord{font-size:.42rem;font-family:var(--mono);color:rgba(0,0,0,.25);z-index:1;margin-top:2px;}
+.cell-tip{
+  display:none;position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);
+  background:rgba(30,20,10,.88);color:#fff;font-family:var(--mono);font-size:.58rem;
+  padding:4px 8px;border-radius:5px;white-space:nowrap;z-index:100;pointer-events:none;
+}
+.cell.unknown{background:var(--gray-cell);border-color:var(--border);}
+.cell.safe-unvisited{background:var(--green-lt);border-color:var(--green);}
+.cell.visited{background:var(--blue-lt);border-color:#90B4DC;}
+.cell.agent{background:var(--purple-lt);border-color:var(--purple);animation:pulse-a 1.1s ease-in-out infinite;}
+.cell.pit-cell{background:var(--red-lt);border-color:var(--red);}
+.cell.wumpus-cell{background:var(--orange-lt);border-color:var(--orange);}
+.cell.gold-cell{background:#FDF6DC;border-color:var(--gold);}
+@keyframes pulse-a{0%,100%{box-shadow:0 0 0 0 rgba(112,72,176,.4);}50%{box-shadow:0 0 0 8px rgba(112,72,176,0);}}
+
+.status-bar{
+  font-family:var(--mono);font-size:.72rem;color:var(--muted);
+  padding:6px 16px;background:var(--white);border:1.5px solid var(--border);
+  border-radius:7px;text-align:center;min-width:260px;flex-shrink:0;
+}
+.status-bar .hl{color:var(--rust-btn);font-weight:600;}
+
+/* Right sidebar */
+.sidebar{
+  width:282px;flex-shrink:0;background:var(--cream);
+  border-left:1.5px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.panel{padding:10px 13px;border-bottom:1.5px solid var(--border);background:var(--white);flex-shrink:0;}
+.panel-title{font-size:.55rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--rust3);margin-bottom:8px;font-weight:600;}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:3.5px 0;border-bottom:1px solid #F2EBE2;}
+.metric-row:last-child{border-bottom:none;}
+.metric-label{font-size:.69rem;color:var(--muted);}
+.metric-val{font-family:var(--mono);font-size:.82rem;color:var(--rust3);font-weight:600;}
+.percept-area{display:flex;gap:5px;flex-wrap:wrap;min-height:24px;}
+.badge{padding:2px 9px;border-radius:20px;font-size:.64rem;font-weight:600;}
+.b-breeze{background:var(--blue-lt);color:var(--blue-dk);border:1px solid #90B4DC;}
+.b-stench{background:var(--red-lt);color:var(--red);border:1px solid #E09090;}
+.b-glitter{background:#FEF6DC;color:var(--gold);border:1px solid #D4AF37;}
+.b-clear{background:var(--green-lt);color:var(--green-dk);border:1px solid #80C8A0;}
+.legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.leg{display:flex;align-items:center;gap:6px;font-size:.67rem;color:var(--muted);}
+.leg-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;border:1.5px solid;}
+
+/* Tabs for log/KB/CNF */
+.tab-bar{display:flex;background:var(--white);border-bottom:1.5px solid var(--border);flex-shrink:0;}
+.tab{flex:1;padding:7px 4px;font-size:.58rem;letter-spacing:1.2px;text-transform:uppercase;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab.active{color:var(--rust3);border-bottom-color:var(--rust3);background:var(--cream);}
+.tab-content{flex:1;overflow-y:auto;display:none;font-family:var(--mono);font-size:.6rem;background:var(--cream);}
+.tab-content.active{display:flex;flex-direction:column;}
+.tab-content::-webkit-scrollbar{width:4px;}
+.tab-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* Agent Log */
+.log-area{padding:7px 11px;display:flex;flex-direction:column;gap:2px;}
+.le{padding:2px 0;border-bottom:1px solid rgba(0,0,0,.05);line-height:1.4;word-break:break-word;}
+.le.info{color:var(--blue)}.le.infer{color:var(--green-dk)}.le.warn{color:var(--orange)}.le.danger{color:var(--red);font-weight:600}.le.done{color:var(--rust3);font-weight:600;}
+
+/* KB Clauses */
+.kb-area{padding:7px 11px;display:flex;flex-direction:column;gap:2px;}
+.kb-clause{padding:2.5px 0;border-bottom:1px solid rgba(0,0,0,.05);line-height:1.5;color:var(--blue-dk);}
+
+/* CNF / Resolution steps */
+.cnf-area{padding:7px 11px;display:flex;flex-direction:column;gap:3px;}
+.cnf-step{padding:3px 6px;border-radius:4px;background:rgba(64,114,180,.07);border-left:2px solid var(--blue);margin-bottom:2px;line-height:1.5;color:var(--text);word-break:break-word;}
+.cnf-step.resolve{background:rgba(61,158,106,.07);border-left-color:var(--green);}
+.cnf-step.contra{background:rgba(196,48,48,.1);border-left-color:var(--red);font-weight:600;color:var(--red);}
+.cnf-step .step-no{color:var(--muted);margin-right:4px;}
+</style>
+</head>
+<body>
+
+
+
+<!-- ══════════ APP MAIN ══════════ -->
+<div class="app-main">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-hero">
+      <div class="oval-track">
+        <div class="ov ov1"></div><div class="ov ov2"></div><div class="ov ov3"></div>
+        <div class="ov ov4"></div><div class="ov ov5"></div>
+      </div>
+      <div class="logo-content">
+        <div class="logo-hex">⬡</div>
+        <div class="logo-title">WUMPUS LOGIC AGENT</div>
+        <div class="logo-sub">Propositional KB · Resolution Refutation · CNF Inference Engine</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-group"><label>Rows</label><input type="number" id="inp-rows" value="4" min="3" max="8" onchange="newGame()"></div>
+    <div class="ctrl-group"><label>Cols</label><input type="number" id="inp-cols" value="4" min="3" max="8" onchange="newGame()"></div>
+    <div class="ctrl-group"><label>Pits</label><input type="number" id="inp-pits" value="3" min="1" max="8" onchange="newGame()"></div>
+    <div class="sep"></div>
+    <button class="btn btn-new" onclick="newGame()">⟳ New Game</button>
+    <button class="btn btn-step" onclick="stepOnce()">▷ Step</button>
+    <button class="btn btn-auto" id="btn-auto" onclick="toggleAuto()">▶ Auto Play</button>
+    <div class="sep"></div>
+    <div class="speed-wrap">
+      <label>Speed</label>
+      <select id="speed-sel" onchange="updateSpeed()">
+        <option value="800">Slow</option>
+        <option value="500" selected>Normal</option>
+        <option value="250">Fast</option>
+        <option value="80">Turbo</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Main body -->
+  <div class="main-body">
+
+    <!-- Grid + status -->
+    <div class="grid-area">
+      <div id="grid-container"></div>
+      <div class="status-bar" id="status-bar">Press <span class="hl">New Game</span> to initialize</div>
+    </div>
+
+    <!-- Right sidebar -->
+    <div class="sidebar">
+      <!-- Metrics -->
+      <div class="panel">
+        <div class="panel-title">📊 Metrics</div>
+        <div class="metric-row"><span class="metric-label">Inference Steps</span><span class="metric-val" id="m-steps">0</span></div>
+        <div class="metric-row"><span class="metric-label">KB Clauses (CNF)</span><span class="metric-val" id="m-clauses">0</span></div>
+        <div class="metric-row"><span class="metric-label">Cells Visited</span><span class="metric-val" id="m-visited">0/0</span></div>
+        <div class="metric-row"><span class="metric-label">Safe Cells (Proved)</span><span class="metric-val" id="m-safe">0</span></div>
+        <div class="metric-row"><span class="metric-label">Agent Moves</span><span class="metric-val" id="m-moves">0</span></div>
+      </div>
+
+      <!-- Percepts -->
+      <div class="panel">
+        <div class="panel-title">📡 Active Percepts</div>
+        <div class="percept-area" id="percept-area">—</div>
+      </div>
+
+      <!-- Legend -->
+      <div class="panel">
+        <div class="panel-title">🗺 Legend</div>
+        <div class="legend-grid">
+          <div class="leg"><div class="leg-dot" style="background:#EDE5DA;border-color:#C9BDB2"></div>Unknown</div>
+          <div class="leg"><div class="leg-dot" style="background:#D8F0E5;border-color:#3D9E6A"></div>Safe (KB)</div>
+          <div class="leg"><div class="leg-dot" style="background:#DDE8F8;border-color:#90B4DC"></div>Visited</div>
+          <div class="leg"><div class="leg-dot" style="background:#EDE4F8;border-color:#7048B0"></div>Agent</div>
+          <div class="leg"><div class="leg-dot" style="background:#FAE0E0;border-color:#C43030"></div>Pit</div>
+          <div class="leg"><div class="leg-dot" style="background:#FAEADE;border-color:#C86018"></div>Wumpus</div>
+        </div>
+      </div>
+
+      <!-- Tabs: Log | KB Clauses | CNF Resolution -->
+      <div class="tab-bar">
+        <button class="tab active" onclick="switchTab('log',this)">🖥 Log</button>
+        <button class="tab" onclick="switchTab('kb',this)">🧠 KB</button>
+        <button class="tab" onclick="switchTab('cnf',this)">⚙ CNF/Res</button>
+      </div>
+
+      <div class="tab-content active" id="tab-log">
+        <div class="log-area" id="log-area"></div>
+      </div>
+      <div class="tab-content" id="tab-kb">
+        <div class="kb-area" id="kb-area"></div>
+      </div>
+      <div class="tab-content" id="tab-cnf">
+        <div class="cnf-area" id="cnf-area"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Tab helper ── */
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+/* ════════════════════════════════════════════
+   PROPOSITIONAL KNOWLEDGE BASE (CNF + Resolution)
+   ════════════════════════════════════════════ */
+class PropKB {
+  constructor() {
+    this.clauses = [];   // Array of clause arrays (each clause = array of literals)
+    this.steps = 0;      // Resolution step counter
+    this.resolutionLog = []; // Stores CNF/resolution trace
+  }
+
+  static neg(lit) { return lit[0] === '!' ? lit.slice(1) : '!' + lit; }
+  static clauseKey(c) { return [...c].sort().join('|'); }
+
+  // TELL: Add a clause (already in CNF form) to the KB
+  tell(clause) {
+    if (!Array.isArray(clause)) clause = [clause];
+    clause = [...new Set(clause)];
+    // Tautology check: if lit and ¬lit both in clause, discard
+    for (const l of clause) if (clause.includes(PropKB.neg(l))) return;
+    const key = PropKB.clauseKey(clause);
+    // Subsumption: if existing clause already subsumes this, skip
+    for (const c of this.clauses) if (PropKB.clauseKey(c) === key) return;
+    for (const c of this.clauses) if (c.length <= clause.length && c.every(l => clause.includes(l))) return;
+    // Forward subsumption: remove clauses subsumed by new one
+    this.clauses = this.clauses.filter(c => !(clause.length <= c.length && clause.every(l => c.includes(l))));
+    this.clauses.push(clause);
+  }
+
+  // TELL biconditional: B_r,c ⟺ (P_n1 ∨ P_n2 ∨ ...) fully expanded to CNF
+  // B ⟺ D1∨D2∨... converts to: (¬B∨D1∨D2∨...) ∧ (B∨¬D1) ∧ (B∨¬D2) ∧ ...
+  tellBiconditional(bLit, disjuncts) {
+    // Forward: ¬B ∨ D1 ∨ D2 ∨ ...
+    this.tell([PropKB.neg(bLit), ...disjuncts]);
+    // Backward: B ∨ ¬Di  for each Di
+    for (const d of disjuncts) this.tell([bLit, PropKB.neg(d)]);
+  }
+
+  // ASK: Does KB entail literal? (Resolution Refutation)
+  // Returns {result: bool, trace: [steps]}
+  ask(literal) {
+    const negGoal = PropKB.neg(literal);
+    const trace = [];
+
+    // Start with KB clauses + negated goal
+    let clauses = [...this.clauses.map(c => [...c]), [negGoal]];
+    trace.push({type:'setup', text:`Goal: prove ${literal}. Added negation: {${negGoal}} to KB copy`});
+
+    // Unit propagation first (fast path)
+    const up = this._unitProp(clauses);
+    if (up === null) {
+      trace.push({type:'contra', text:`⊥ Contradiction found via unit propagation!`});
+      // FIX 1: Add explicit formal proof declaration
+      trace.push({type:'done', text:`✔ FINAL RESULT: KB ⊨ ${literal}`});
+      this.steps++;
+      return {result: true, trace};
+    }
+    clauses = up;
+
+    const seen = new Set(clauses.map(c => PropKB.clauseKey(c)));
+    const MAX = 700;
+
+    while (clauses.length < MAX) {
+      const newC = [];
+      const n = clauses.length;
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          this.steps++;
+          const resolvents = this._resolveTwo(clauses[i], clauses[j]);
+          for (const r of resolvents) {
+            if (r.length === 0) {
+              trace.push({type:'resolve', text:`Resolve {${clauses[i].join('∨')}} with {${clauses[j].join('∨')}}`});
+              // FIX 1: Explicit formal proof output with FINAL RESULT line
+              trace.push({type:'contra', text:`⊥ Empty clause derived → ${literal} is PROVED by Resolution Refutation`});
+              trace.push({type:'done', text:`✔ FINAL RESULT: KB ⊨ ${literal}`});
+              return {result: true, trace};
+            }
+            const k = PropKB.clauseKey(r);
+            if (!seen.has(k)) {
+              seen.add(k);
+              newC.push(r);
+              if (trace.length < 20)
+                trace.push({type:'resolve', text:`Resolve → {${r.join(' ∨ ')}}`});
+            }
+          }
+        }
+      }
+      if (newC.length === 0) {
+        trace.push({type:'fail', text:`No new clauses. ${literal} cannot be proved.`});
+        return {result: false, trace};
+      }
+      clauses = clauses.concat(newC);
+    }
+    return {result: false, trace};
+  }
+
+  _unitProp(clauses) {
+    let work = clauses.map(c => [...c]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      const units = work.filter(c => c.length === 1).map(c => c[0]);
+      for (const u of units) {
+        if (units.includes(PropKB.neg(u))) return null;
+        const next = [];
+        for (const c of work) {
+          if (c.includes(u)) continue;
+          const s = c.filter(l => l !== PropKB.neg(u));
+          if (s.length === 0) return null;
+          if (s.length !== c.length) changed = true;
+          next.push(s);
+        }
+        work = next;
+      }
+    }
+    return work;
+  }
+
+  _resolveTwo(c1, c2) {
+    const out = [];
+    for (const lit of c1) {
+      const neg = PropKB.neg(lit);
+      if (!c2.includes(neg)) continue;
+      const r = [...new Set([...c1, ...c2].filter(l => l !== lit && l !== neg))];
+      let tau = false;
+      for (const l of r) if (r.includes(PropKB.neg(l))) { tau = true; break; }
+      if (!tau) out.push(r);
+    }
+    return out;
+  }
+
+  reset() { this.clauses = []; this.steps = 0; this.resolutionLog = []; }
+}
+
+/* ════════════════════════════════════════════
+   WUMPUS WORLD ENVIRONMENT
+   ════════════════════════════════════════════ */
+class WumpusWorld {
+  constructor(R, C, numPits) {
+    this.R = R; this.C = C;
+    this.cells = Array.from({length: R}, () =>
+      Array.from({length: C}, () => ({pit: false, wumpus: false, gold: false}))
+    );
+    this._placeHazards(numPits);
+  }
+
+  _placeHazards(numPits) {
+    // Build pool of all cells except (0,0) — agent start
+    const pool = [];
+    for (let r = 0; r < this.R; r++)
+      for (let c = 0; c < this.C; c++)
+        if (!(r === 0 && c === 0)) pool.push([r, c]);
+
+    // Fisher-Yates shuffle
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    // Place pits (limit to 35% of grid)
+    const safeCount = Math.min(numPits, pool.length - 2);
+    for (let i = 0; i < safeCount; i++)
+      this.cells[pool[i][0]][pool[i][1]].pit = true;
+
+    // Place wumpus
+    this.cells[pool[safeCount][0]][pool[safeCount][1]].wumpus = true;
+
+    // Place gold
+    if (pool.length > safeCount + 1)
+      this.cells[pool[safeCount + 1][0]][pool[safeCount + 1][1]].gold = true;
+  }
+
+  neighbors(r, c) {
+    return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
+      .filter(([a,b]) => a >= 0 && a < this.R && b >= 0 && b < this.C);
+  }
+
+  // Returns percept at (r,c) — the agent's sensors
+  percept(r, c) {
+    const ns = this.neighbors(r, c);
+    return {
+      breeze:  ns.some(([a,b]) => this.cells[a][b].pit),
+      stench:  ns.some(([a,b]) => this.cells[a][b].wumpus),
+      glitter: this.cells[r][c].gold,
+      pit:     this.cells[r][c].pit,
+      wumpus:  this.cells[r][c].wumpus,
+    };
+  }
+}
+
+/* ════════════════════════════════════════════
+   KNOWLEDGE-BASED AGENT
+   ════════════════════════════════════════════ */
+class Agent {
+  constructor(world) {
+    this.world = world;
+    this.kb = new PropKB();
+    this.r = 0; this.c = 0;
+    this.visited = new Set();
+    this.safe = new Set();
+    this.moves = 0;
+    this.alive = true;
+    this.done = false;
+    this.log = [];
+    this.cnfTrace = [];   // Stores resolution trace for display
+    this.lastPercept = {};
+
+    // (0,0) is safe by default — agent starts here
+    this._markCellSafe(0, 0);
+    this._processArrival(0, 0);
+  }
+
+  k(r, c) { return `${r}_${c}`; }
+
+  // Tell KB this cell has no pit and no wumpus (CNF unit clauses)
+  _markCellSafe(r, c) {
+    const k = this.k(r, c);
+    this.kb.tell([`!P_${k}`]);  // ¬Pit
+    this.kb.tell([`!W_${k}`]);  // ¬Wumpus
+    this.safe.add(k);
+  }
+
+  // Process arrival at (r,c): perceive, TELL KB, infer
+  _processArrival(r, c) {
+    const k = this.k(r, c);
+    this.visited.add(k);
+    this._markCellSafe(r, c);
+
+    const p = this.world.percept(r, c);
+    this.lastPercept = p;
+    const ns = this.world.neighbors(r, c);
+
+    if (!p.breeze && !p.stench) {
+      // Clear — all neighbors are safe
+      // TELL: ¬B_r,c  and  ¬S_r,c
+      this.kb.tell([`!B_${k}`]);
+      this.kb.tell([`!S_${k}`]);
+      for (const [nr, nc] of ns) {
+        this.kb.tell([`!P_${this.k(nr,nc)}`]);
+        this.kb.tell([`!W_${this.k(nr,nc)}`]);
+        if (!this.safe.has(this.k(nr,nc))) {
+          this.safe.add(this.k(nr,nc));
+          this._log('infer', `(${nr+1},${nc+1}) proved safe — clear percept at (${r+1},${c+1})`);
+        }
+      }
+    } else {
+      if (p.breeze) {
+        // TELL: B_r,c  (breeze is true)
+        this.kb.tell([`B_${k}`]);
+        // TELL biconditional: B_r,c ⟺ P_n1 ∨ P_n2 ∨ ...
+        // CNF: (¬B∨P_n1∨P_n2∨...) ∧ (B∨¬P_n1) ∧ (B∨¬P_n2) ∧ ...
+        const pitLits = ns.map(([a,b]) => `P_${this.k(a,b)}`);
+        this.kb.tellBiconditional(`B_${k}`, pitLits);
+        this._log('warn', `Breeze @ (${r+1},${c+1}) — pit in {${ns.map(([a,b])=>`(${a+1},${b+1})`).join(',')}}`);
+      }
+      if (p.stench) {
+        this.kb.tell([`S_${k}`]);
+        // TELL biconditional: S_r,c ⟺ W_n1 ∨ W_n2 ∨ ...
+        const wLits = ns.map(([a,b]) => `W_${this.k(a,b)}`);
+        this.kb.tellBiconditional(`S_${k}`, wLits);
+        this._log('warn', `Stench @ (${r+1},${c+1}) — Wumpus in {${ns.map(([a,b])=>`(${a+1},${b+1})`).join(',')}}`);
+      }
+    }
+
+    // Run resolution inference on all unvisited cells
+    this._inferSafe();
+  }
+
+  // ASK KB: for each unvisited cell, try to prove ¬Pit ∧ ¬Wumpus via Resolution
+  _inferSafe() {
+    for (let r = 0; r < this.world.R; r++) {
+      for (let c = 0; c < this.world.C; c++) {
+        const k = this.k(r, c);
+        if (this.safe.has(k)) continue;
+
+        // FIX 4: Log that we are checking this cell before calling ask()
+        this._log('info', `Checking safety of (${r+1},${c+1}) using Resolution...`);
+
+        const rP = this.kb.ask(`!P_${k}`);
+        const rW = this.kb.ask(`!W_${k}`);
+
+        if (rP.result && rW.result) {
+          this.safe.add(k);
+          // FIX 6: Accumulate trace instead of overwriting it
+          this.cnfTrace = this.cnfTrace.concat(rP.trace, rW.trace);
+          // FIX 4: Log success with logical entailment language
+          this._log('infer', `✔ (${r+1},${c+1}) is SAFE by logical entailment [${this.kb.steps} total steps]`);
+        }
+      }
+    }
+  }
+
+  // Move agent one step using BFS over known-safe unvisited cells
+  step() {
+    if (!this.alive || this.done) return;
+
+    const next = this._bfsNextSafeUnvisited();
+    if (!next) {
+      this.done = true;
+      this._log('done', 'Exploration complete — no reachable safe unvisited cells.');
+      return;
+    }
+
+    [this.r, this.c] = next;
+    this.moves++;
+    this._log('info', `→ Moved to (${this.r+1},${this.c+1})`);
+
+    const p = this.world.percept(this.r, this.c);
+    if (p.pit)    { this.alive = false; this._log('danger', `💀 Fell into PIT at (${this.r+1},${this.c+1})!`); return; }
+    if (p.wumpus) { this.alive = false; this._log('danger', `💀 Eaten by WUMPUS at (${this.r+1},${this.c+1})!`); return; }
+
+    this._processArrival(this.r, this.c);
+
+    if (p.glitter) {
+      this.done = true;
+      // FIX 5: Full final result summary when gold is found
+      this._log('done', `🏆 GOLD FOUND at (${this.r+1},${this.c+1})`);
+      this._log('done', `Final KB Steps: ${this.kb.steps}`);
+      this._log('done', `Visited Cells: ${this.visited.size}`);
+      this._log('done', `Resolution Proofs Completed Successfully`);
+    }
+  }
+
+  // BFS: find next step toward nearest safe unvisited cell
+  _bfsNextSafeUnvisited() {
+    const queue = [[this.r, this.c, null]];
+    const seen = new Set([this.k(this.r, this.c)]);
+
+    while (queue.length > 0) {
+      const [r, c, firstStep] = queue.shift();
+      for (const [nr, nc] of this.world.neighbors(r, c)) {
+        const k = this.k(nr, nc);
+        if (seen.has(k) || !this.safe.has(k)) continue;
+        seen.add(k);
+        const step = firstStep || [nr, nc];
+        if (!this.visited.has(k)) return step;
+        queue.push([nr, nc, step]);
+      }
+    }
+    return null;
+  }
+
+  _log(type, msg) {
+    this.log.push({type, msg, ts: Date.now()});
+    if (this.log.length > 150) this.log.shift();
+  }
+}
+
+/* ════════════════════════════════════════════
+   GAME STATE & CONTROLS
+   ════════════════════════════════════════════ */
+let world = null, agent = null, autoTimer = null, autoSpeed = 500;
+function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
+function updateSpeed() { autoSpeed = parseInt(document.getElementById('speed-sel').value); }
+
+function newGame() {
+  stopAuto();
+  const R = clamp(parseInt(document.getElementById('inp-rows').value) || 4, 3, 8);
+  const C = clamp(parseInt(document.getElementById('inp-cols').value) || 4, 3, 8);
+  const P = clamp(parseInt(document.getElementById('inp-pits').value) || 3, 1, Math.floor(R * C * 0.35));
+  world = new WumpusWorld(R, C, P);
+  agent = new Agent(world);
+  agent._log('info', `New game: ${R}×${C} grid, ${P} pits. Agent starts at (1,1).`);
+  agent._log('info', `KB initialized with CNF biconditional rules.`);
+  render();
+}
+
+function stepOnce() {
+  if (!agent) return newGame();
+  if (!agent.alive || agent.done) return;
+  agent.step();
+  render();
+}
+
+function toggleAuto() {
+  if (autoTimer) { stopAuto(); return; }
+  if (!agent) newGame();
+  const btn = document.getElementById('btn-auto');
+  btn.textContent = '⏸ Pause'; btn.className = 'btn btn-stop';
+  autoTimer = setInterval(() => {
+    if (!agent || !agent.alive || agent.done) { stopAuto(); return; }
+    agent.step(); render();
+  }, autoSpeed);
+}
+
+function stopAuto() {
+  clearInterval(autoTimer); autoTimer = null;
+  const btn = document.getElementById('btn-auto');
+  if (btn) { btn.textContent = '▶ Auto Play'; btn.className = 'btn btn-auto'; }
+}
+
+
+function render() {
+  if (!world || !agent) return;
+  renderGrid();
+  renderSidebar();
+}
+
+function getCellClass(r, c) {
+  const k = `${r}_${c}`;
+  if (agent.r === r && agent.c === c) return 'agent';
+  const revealed = !agent.alive || agent.done;
+  if (revealed) {
+    const cell = world.cells[r][c];
+    if (cell.pit)    return 'pit-cell';
+    if (cell.wumpus) return 'wumpus-cell';
+    if (cell.gold)   return 'gold-cell';
+  }
+  if (agent.visited.has(k)) return 'visited';
+  if (agent.safe.has(k))    return 'safe-unvisited';
+  return 'unknown';
+}
+
+function getCellIcon(r, c) {
+  const k = `${r}_${c}`;
+  const isVisited = agent.visited.has(k);
+  const revealed  = !agent.alive || agent.done;
+  const cell = world.cells[r][c];
+
+  if (agent.r === r && agent.c === c) return '🧑‍🚀';
+  if (revealed) {
+    if (cell.pit)    return '🌀';
+    if (cell.wumpus) return '👾';
+    if (cell.gold)   return '💎';
+  }
+  if (isVisited) {
+    if (cell.pit)    return '🌀';
+    if (cell.wumpus) return '👾';
+    if (cell.gold)   return '💎';
+    const p = world.percept(r, c);
+    if (p.breeze && p.stench) return '💨🤢';
+    if (p.breeze) return '💨';
+    if (p.stench) return '🤢';
+    return '✅';
+  }
+  if (agent.safe.has(k)) return '🟢';
+  return '❓';
+}
+
+function getCellTip(r, c) {
+  const k = `${r}_${c}`;
+  const parts = [`(${r+1},${c+1})`];
+  if (agent.visited.has(k)) parts.push('Visited');
+  else if (agent.safe.has(k)) parts.push('Safe—KB proved');
+  else parts.push('Unknown');
+  if (agent.r === r && agent.c === c) parts.push('← Agent');
+  return parts.join(' · ');
+}
+
+function renderGrid() {
+  const G = document.getElementById('grid-container');
+  G.style.gridTemplateColumns = `repeat(${world.C}, 70px)`;
+  let html = '';
+  for (let r = world.R - 1; r >= 0; r--) {
+    for (let c = 0; c < world.C; c++) {
+      const cls  = getCellClass(r, c);
+      const icon = getCellIcon(r, c);
+      const tip  = getCellTip(r, c);
+      html += `<div class="cell ${cls}">
+        <span class="icon" style="display:flex;align-items:center;justify-content:center;">${icon}</span>
+        <span class="coord">(${r+1},${c+1})</span>
+        <span class="cell-tip">${tip}</span>
+      </div>`;
+    }
+  }
+  G.innerHTML = html;
+
+  // Status bar
+  let status;
+  if (!agent.alive) {
+    status = `<span class="hl">💀 Agent Dead</span> — Grid revealed. Start a new game.`;
+  } else if (agent.done) {
+    const p = world.percept(agent.r, agent.c);
+    status = p.glitter
+      ? `<span class="hl">🏆 Gold Found!</span> at (${agent.r+1},${agent.c+1}) — Mission complete!`
+      : `<span class="hl">🏁 Exploration Done</span> — All reachable safe cells visited`;
+  } else {
+    status = `Agent @ <span class="hl">(${agent.r+1},${agent.c+1})</span> · ${agent.moves} moves · ${agent.kb.steps} resolution steps · ${agent.kb.clauses.length} KB clauses`;
+  }
+  document.getElementById('status-bar').innerHTML = status;
+}
+
+function renderSidebar() {
+  // Metrics
+  document.getElementById('m-steps').textContent   = agent.kb.steps;
+  document.getElementById('m-clauses').textContent = agent.kb.clauses.length;
+  document.getElementById('m-visited').textContent = `${agent.visited.size}/${world.R * world.C}`;
+  document.getElementById('m-safe').textContent    = agent.safe.size;
+  document.getElementById('m-moves').textContent   = agent.moves;
+
+  // Percepts
+  const p = agent.lastPercept;
+  let badges = '';
+  if (p.breeze)  badges += '<span class="badge b-breeze">💨 Breeze</span>';
+  if (p.stench)  badges += '<span class="badge b-stench">🤢 Stench</span>';
+  if (p.glitter) badges += '<span class="badge b-glitter">✨ Glitter</span>';
+  if (!p.breeze && !p.stench && !p.glitter) badges = '<span class="badge b-clear">✅ Clear</span>';
+  document.getElementById('percept-area').innerHTML = badges;
+
+  // Log tab
+  document.getElementById('log-area').innerHTML = agent.log
+    .slice(-50).reverse()
+    .map(e => `<div class="le ${e.type}">${e.msg}</div>`)
+    .join('');
+
+  // FIX 3: KB Clauses tab — human-readable labels (Pit(r,c), Wumpus(r,c), etc.)
+  document.getElementById('kb-area').innerHTML = agent.kb.clauses
+    .slice(-40).reverse()
+    .map((c, i) => {
+      const readable = c
+        .map(l => l.replace(/^!/,'¬').replace(/_/g,','))
+        .join(' ∨ ')
+        .replace(/P,/g,'Pit(')
+        .replace(/W,/g,'Wumpus(')
+        .replace(/B,/g,'Breeze(')
+        .replace(/S,/g,'Stench(')
+        .replace(/(\d),(\d)/g,'$1,$2)');
+      return `<div class="kb-clause">[${i+1}] ${readable}</div>`;
+    })
+    .join('');
+
+  // FIX 2: CNF/Resolution trace tab — with PROOF TRACE START header
+  const trace = agent.cnfTrace;
+  if (trace && trace.length > 0) {
+    let html = `<div class="cnf-step resolve"><b>PROOF TRACE START</b></div>`;
+    html += trace.map((t, i) => `
+      <div class="cnf-step ${t.type === 'resolve' ? 'resolve' : t.type === 'contra' ? 'contra' : ''}">
+        <span class="step-no">[${i+1}]</span>${t.text}
+      </div>
+    `).join('');
+    document.getElementById('cnf-area').innerHTML = html;
+  } else {
+    document.getElementById('cnf-area').innerHTML = '<div style="padding:10px 11px;color:var(--muted);font-size:.62rem;">Resolution trace appears here when inference runs…</div>';
+  }
+}
+
+// Auto-start
+newGame();
+</script>
+</body>
+</html>
